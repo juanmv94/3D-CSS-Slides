@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<title>CSS 3D Slides</title>
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			html, body {
+				height: 100%;
+				overflow: hidden;
+				cursor: none;
+			}
+			#blocker {
+				position: absolute;
+				/* background-color: rgba(255, 0, 0, 0.5); */
+				top: 0px;
+				left: 0px;
+				width: 100%;
+				height: 100%;
+			}
+			#container_css3d_slides, container_webgl_floor {
+				position: fixed;
+				top: 0px;
+				left: 0px;
+				width: 100%;
+				height: 100%;
+			}
+			.botoncnt{
+				position: fixed;
+				top: 0;
+				height:100%;
+				opacity:0;
+				-webkit-transition: opacity 0.5s; /* Safari */
+				transition: opacity 0.5s;
+			}
+			.botoncnt:hover{
+				opacity:0.5;
+			}
+			.boton {
+				position:relative;
+				top: 40%;
+				height: 20%;
+			}
+		</style>
+	</head>
+	<body style="background-color: #000">
+		<script src="three.min.js"></script>
+		<script src="CSS3DRenderer.js"></script>
+		
+		<div id="container_webgl_floor"></div>
+		<div id="container_css3d_slides"></div>
+		
+		<div id="debug" style="position:fixed; font-size:2vw; color:white; background-color:RGBA(0,0,0,0.5);"></div>
+		<div id="npagina" style="position:fixed; right:1%; bottom:1%; font-size:4vw; color:white; text-shadow: 2px 2px 8px #000000,2px 2px 4px #80B0FF;font-family:arial;">1</div>
+		<div id="blocker"></div>
+		<div class="botoncnt" onclick="diap_anterior()" style="left:0%;-webkit-transform: scaleX(-1);-moz-transform: scaleX(-1);transform: scaleX(-1);">
+		<img class="boton" src="next.png">
+		</div>
+		<div class="botoncnt" onclick="diap_siguiente()" style="right:0%;">
+		<img class="boton" src="next.png">
+		</div>
+		
+		<script>
+			var blocker = document.getElementById( 'blocker' );
+			var npagina = document.getElementById( 'npagina' );
+		
+			const diapX=1280,diapY=746;	//Modificar tambien addElement
+			const diapDistX=2000;diapDistZ=1000;
+			const diapSep=10;
+			const limitzoom=[800,1200];
+			const d_mostradas=8;	//limite de diapositivas mostradas simultaneamente
+			const filas_diapos=3;	//filas de diapositivas (horizontalmente)
+			
+			var camera, scene_css3d_slides, scene_webgl_floor, renderer_css3d_slides, renderer_webgl_floor;
+			var controls;
+			
+			var redraw=false;		//se debe dibujar nuevo fotograma?
+			
+			var diap=7;
+			var d_actual=0;
+			var zoom=1100;
+			//Posiciones diapositivas y sombras
+			var diapPos1=new Array(diap);
+			var diapPos2=new Array(diap);
+			//array de div diapositivas y sombras
+			var div_diap1;
+			var div_diap2;
+			
+			//*****Click****//
+			function mousedownblocker( event ) {
+				blocker.style.display="none";
+				event.preventDefault();
+				event.stopPropagation();
+			}
+			function mousedowndoc( event ) {
+				document.activeElement.blur();
+				if (blocker.style.display=="none") blocker.style.display="";
+				event.preventDefault();
+			}
+			blocker.addEventListener( 'mousedown', mousedownblocker, false );
+			document.addEventListener( 'mousedown', mousedowndoc, false );
+			
+			//*****NAVEGACION FINAL*****//
+			//Arrays de coordenadas movimiento
+			var mov_ini;	//inicio del movimiento
+			var mov_dist;	//vector movimiento
+			
+			var mov_t0;		//intante de inicio mov
+			const mov_time= 500; //duracion movimiento
+			var moving=false;	//movimiento activo
+			
+			var onKeyDown = function ( event ) {
+					switch ( event.keyCode ) {
+						case 38: // up
+						case 87: // w
+							break;
+						case 37: // left
+						case 65: // a
+							diap_anterior();
+							break;
+						case 40: // down
+						case 83: // s
+							break;
+						case 39: // right
+						case 68: // d
+							diap_siguiente();
+							break;
+						case 32: // space
+							break;
+					}
+			};
+			document.addEventListener( 'keydown', onKeyDown, false );
+			
+			//*****Raton*****//
+			
+			function mousewheel( event ) {
+				var newzoom=zoom+event.deltaY*0.5;
+				if (newzoom<limitzoom[0] || newzoom>limitzoom[1]) return;
+				zoom=newzoom;
+				movcam(d_actual);
+			}
+			document.addEventListener( 'wheel', mousewheel, false );
+			
+			
+			function mousemove( event ) {
+				var w=window.innerWidth/2;
+				var h=window.innerHeight/2;
+				var x=(event.pageX-w)/w;
+				var y=(event.pageY-h)/h;
+				camera.rotation.set(-y*0.03,-x*0.03,0);
+				redraw=true;
+			}
+			document.addEventListener( 'mousemove', mousemove, false );
+			
+			//***************//
+			
+			function diap_anterior()
+			{
+				if (d_actual>0)
+					{
+						d_actual--;
+						actualiza_d_mostradas();
+						npagina.innerHTML=d_actual+1;
+						movcam(d_actual);
+					}
+			}
+			
+			function diap_siguiente()
+			{
+				if (d_actual<(diap-1))
+					{
+						d_actual++;
+						npagina.innerHTML=d_actual+1;
+						actualiza_d_mostradas();
+						movcam(d_actual);
+					}
+			}
+			
+			function actualiza_d_mostradas()	//muestra solo las diapositivas cercanas para reducir lag
+			{
+				for (var i=0;i<(d_actual-d_mostradas);i++)
+				{
+					div_diap1[i].style.display="none";
+					div_diap2[i].style.display="none";
+				}
+				
+				for (var i=Math.max(0,(d_actual-d_mostradas));i<diap;i++)
+				{
+					div_diap1[i].style.display="";
+					div_diap2[i].style.display="";
+				}
+			}
+			
+			function movcam(diapositiva)
+			{
+				mov_ini=[camera.position.x,camera.position.y,camera.position.z];
+				mov_dist=[diapPos1[d_actual][0]-camera.position.x,diapPos1[d_actual][1]-camera.position.y,diapPos1[d_actual][2]+zoom-camera.position.z];
+				mov_t0=performance.now();
+				moving=true;
+				//camera.position.set(diapPos1[d_actual][0],diapPos1[d_actual][1],diapPos1[d_actual][2]+zoom);
+			}
+			
+			//*************************************//
+			
+			function addPlano( scene,url ) {
+				// LIGHT
+				//var light = new THREE.PointLight(0xffffff);
+				//light.position.set(0,150,100);
+				//scene.add(light);
+				
+				//var floorTexture = new THREE.ImageUtils.loadTexture( url );
+				
+				var loader = new THREE.TextureLoader();
+				loader.load(url,function (floorTexture)
+				{
+					floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping; 
+					floorTexture.repeat.set( 85, 85*(200*diap/2000) );
+					var floorMaterial = new THREE.MeshBasicMaterial( { map: floorTexture, side: THREE.DoubleSide } );
+					var floorGeometry = new THREE.PlaneGeometry(2000, 200*diap, 10, 10);
+					var floor = new THREE.Mesh(floorGeometry, floorMaterial);
+					floor.position.set(100,-36,-100*(diap-1));
+					floor.rotation.x = Math.PI / 2;
+					scene.add(floor);
+					redraw=true;
+				});
+			}
+			
+			function addElement( group, reflejos,id) {
+			    var x=diapPos1[id][0],y=diapPos1[id][1],z=diapPos1[id][2];
+				var div = document.createElement( 'div' );
+				div.style.width = diapX+'px';
+				div.style.height = diapY+'px';
+				div.style.backgroundColor = '#000';
+
+				var iframe = document.createElement( 'iframe' );
+				iframe.style.width = diapX+'px';
+				iframe.style.height = diapY+'px';
+				iframe.scrolling="no";
+				iframe.style.overflow="scroll";
+				iframe.frameBorder="0";
+
+				iframe.src = "slides/"+(id+1)+"/index.html";
+				
+				div.appendChild( iframe );
+				div2=div.cloneNode(true);	//Replicamos para reflejo
+				div.className="diapositiva";
+				
+				var object = new THREE.CSS3DObject( div );
+				object.position.set( x, y, z );
+				//object.rotation.y = ry;
+				group.add(object);
+				
+				div2.className="reflejo";
+				div2.style.pointerEvents="none";
+				div2.style.webkitMaskImage="-webkit-gradient(linear, 0% 100%, 0% 5%, from(rgba(0, 0, 0, 1)), to(rgba(0, 0, 0, 0)))"
+				div2.style.opacity=0.4;
+				var object2 = new THREE.CSS3DObject( div2 );
+				object2.position.set( x, -diapY-y, z );
+				//object2.rotation.y = Math.PI-ry;
+				object2.rotation.z = Math.PI;
+				object2.rotation.y = Math.PI;
+				reflejos.add(object2);
+			};
+
+			var diapos = new THREE.Group();
+			var reflejos = new THREE.Group();
+			init();
+			animate();
+
+			function init() {
+				var debug= document.getElementById( 'debug' );
+				var container_css3d_slides = document.getElementById( 'container_css3d_slides' );
+				var container_webgl_floor = document.getElementById( 'container_webgl_floor' );
+
+				camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 1, 9000 );
+
+				scene_css3d_slides = new THREE.Scene();
+				scene_webgl_floor = new THREE.Scene();
+				scene_webgl_floor.scale.set (10,10,10);
+				scene_webgl_floor.fog = new THREE.Fog( 0x88888F, 1000, 12000 );
+
+				renderer_css3d_slides = new THREE.CSS3DRenderer();
+				renderer_css3d_slides.setSize( window.innerWidth, window.innerHeight );
+				container_css3d_slides.appendChild( renderer_css3d_slides.domElement );
+				
+				renderer_webgl_floor = new THREE.WebGLRenderer();
+				renderer_webgl_floor.setSize( window.innerWidth, window.innerHeight );
+				container_webgl_floor.appendChild( renderer_webgl_floor.domElement );
+				
+				addPlano(scene_webgl_floor,"tron2.png");
+				
+				//calculamos posiciones de las diapos normalmente y las añadimos
+				for (var i=0;i<diap;i++)
+				{
+					diapPos1[i]=[(i%filas_diapos)*diapDistX,0,-diapDistZ*(diap-i-1)]
+					addElement(diapos,reflejos, i);
+				}
+				movcam(d_actual);
+				scene_css3d_slides.add( diapos );
+				scene_css3d_slides.add( reflejos );
+				
+				window.addEventListener( 'resize', onWindowResize, false );
+
+				renderer_css3d_slides.render( scene_css3d_slides, camera );
+				renderer_webgl_floor.render( scene_webgl_floor, camera );
+				div_diap1=document.getElementsByClassName("diapositiva");
+				div_diap2=document.getElementsByClassName("reflejo");
+				actualiza_d_mostradas();
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer_css3d_slides.setSize( window.innerWidth, window.innerHeight );
+				renderer_webgl_floor.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+				//controls.update();
+				if (moving)
+				{
+					redraw=true;
+					//****movemos******//
+					var mult;	//valor por el que multiplicaremos el vector mov_dist
+					var now=performance.now();
+					if ((now-mov_t0)>=mov_time)
+					{
+						moving=false;
+						mult=1;
+					}
+					else
+						mult=(now-mov_t0)/mov_time;
+					camera.position.set(mov_ini[0]+mov_dist[0]*mult,mov_ini[1]+mov_dist[1]*mult,mov_ini[2]+mov_dist[2]*mult);
+					//*****************//
+				}
+				if (redraw)
+				{
+					renderer_css3d_slides.render( scene_css3d_slides, camera );
+					renderer_webgl_floor.render( scene_webgl_floor, camera );
+				}
+				//debug.innerHTML="cam x="+camera.position.x.toFixed(0)+" y="+camera.position.y.toFixed(0)+" z="+camera.position.z.toFixed(0)+"<br/>rx="+camera.rotation._x.toFixed(2)+"cam ry="+camera.rotation._y.toFixed(2)+" rz="+camera.rotation._z.toFixed(2)+"<br/>diap="+d_actual+"<br/>zoom="+zoom.toFixed(1)+"<br/>mov="+moving+"<br/>redraw="+redraw;
+				redraw=false;
+			}
+		</script>
+</body></html>

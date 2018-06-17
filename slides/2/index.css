@@ -1,0 +1,60 @@
+.ff0{font-family:sans-serif;visibility:hidden;}
+@font-face{font-family:ff1;src:url(f1.woff)format("woff");}.ff1{font-family:ff1;line-height:0.859863;font-style:normal;font-weight:normal;visibility:visible;}
+@font-face{font-family:ff2;src:url(f2.woff)format("woff");}.ff2{font-family:ff2;line-height:1.083496;font-style:normal;font-weight:normal;visibility:visible;}
+.m0{transform:matrix(0.444444,0.000000,0.000000,0.444444,0,0);-ms-transform:matrix(0.444444,0.000000,0.000000,0.444444,0,0);-webkit-transform:matrix(0.444444,0.000000,0.000000,0.444444,0,0);}
+.v0{vertical-align:0.000000px;}
+.ls0{letter-spacing:0.000000px;}
+.sc_{text-shadow:none;}
+.sc0{text-shadow:-0.015em 0 transparent,0 0.015em transparent,0.015em 0 transparent,0 -0.015em  transparent;}
+@media screen and (-webkit-min-device-pixel-ratio:0){
+.sc_{-webkit-text-stroke:0px transparent;}
+.sc0{-webkit-text-stroke:0.015em transparent;text-shadow:none;}
+}
+.ws0{word-spacing:0.000000px;}
+._0{margin-left:-2.802240px;}
+._1{margin-left:-1.200960px;}
+.fc1{color:rgb(0,0,0);}
+.fc0{color:rgb(4,97,123);}
+.fs1{font-size:144.000000px;}
+.fs2{font-size:144.096000px;}
+.fs0{font-size:200.160000px;}
+.y0{bottom:0.000000px;}
+.y6{bottom:142.208000px;}
+.y5{bottom:219.057778px;}
+.y4{bottom:295.857778px;}
+.y3{bottom:372.693333px;}
+.y2{bottom:449.528889px;}
+.y1{bottom:549.511111px;}
+.h2{height:115.171875px;}
+.h3{height:115.248656px;}
+.h1{height:136.534922px;}
+.h0{height:720.000000px;}
+.w0{width:1280.000000px;}
+.x0{left:0.000000px;}
+.x1{left:64.000000px;}
+.x2{left:76.800000px;}
+@media print{
+.v0{vertical-align:0.000000pt;}
+.ls0{letter-spacing:0.000000pt;}
+.ws0{word-spacing:0.000000pt;}
+._0{margin-left:-2.101680pt;}
+._1{margin-left:-0.900720pt;}
+.fs1{font-size:108.000000pt;}
+.fs2{font-size:108.072000pt;}
+.fs0{font-size:150.120000pt;}
+.y0{bottom:0.000000pt;}
+.y6{bottom:106.656000pt;}
+.y5{bottom:164.293333pt;}
+.y4{bottom:221.893333pt;}
+.y3{bottom:279.520000pt;}
+.y2{bottom:337.146667pt;}
+.y1{bottom:412.133333pt;}
+.h2{height:86.378906pt;}
+.h3{height:86.436492pt;}
+.h1{height:102.401191pt;}
+.h0{height:540.000000pt;}
+.w0{width:960.000000pt;}
+.x0{left:0.000000pt;}
+.x1{left:48.000000pt;}
+.x2{left:57.600000pt;}
+}
